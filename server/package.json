@@ -1,5 +1,5 @@
 {
-  "name": "testarea",
+  "name": "express_app",
   "version": "1.0.0",
   "description": "A Simple Express Server implementation to deliver city.list.json",
   "main": "index.js",
