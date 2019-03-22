@@ -59,9 +59,9 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
       String path: '/cityNames'}) async {
     return await HttpClient()
         .get(host, port, path)
-        .catchError((error) {})
+        .catchError((error) => Navigator.of(context).pop(false))
         .then((HttpClientRequest req) => req.close())
-        .catchError((error) {})
+        .catchError((error) => Navigator.of(context).pop(false))
         .then((HttpClientResponse resp) {
       if (resp.statusCode == 200) {
         resp.transform(utf8.decoder).transform(json.decoder).listen((data) {
@@ -92,7 +92,7 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
         });
       } else
         Navigator.of(context).pop(false);
-    }).catchError((error) {});
+    }).catchError((error) => Navigator.of(context).pop(false));
   }
 
   Future<int> inflateCityNamesDataBase(List<Map<String, String>> data) async {

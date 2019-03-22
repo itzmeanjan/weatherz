@@ -32,6 +32,7 @@ class MainActivity : FlutterActivity() {
                     result.success(try {
                         getSharedPreferences("weatherZ", Context.MODE_PRIVATE).edit().apply {
                             this.putBoolean("initSetUp", true)
+                            this.apply()
                         }
                         true
                     } catch (e: Exception) {
@@ -43,6 +44,7 @@ class MainActivity : FlutterActivity() {
                             try {
                                 getSharedPreferences("weatherZ", Context.MODE_PRIVATE).edit().apply {
                                     this.putString("apiKey", methodCall.argument<String>("apiKey"))
+                                    this.apply()
                                 }
                                 true
                             } catch (e: Exception) {
