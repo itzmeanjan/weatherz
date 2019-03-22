@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel;
 import 'dart:async' show Timer;
+import 'dart:io' show HttpClient, HttpClientRequest, HttpClientResponse;
+import 'dart:convert' show utf8, json;
 
 class InitSetUpPage extends StatefulWidget {
   MethodChannel methodChannel;
@@ -17,12 +19,14 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
   double _visibilityUpper;
   double _visibilityLower;
   String _statusText;
+  bool _isEnabled;
 
   @override
   void initState() {
     super.initState();
     _visibilityUpper = 0.0;
     _visibilityLower = 1.0;
+    _isEnabled = true;
     _statusText = 'Storing API Key ...';
     _focusNode = FocusNode();
     _textEditingController = TextEditingController(text: '');
@@ -49,6 +53,55 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
     }).then((val) => val);
   }
 
+  Future<void> downloadCityNames(
+      {String host: '192.168.1.103',
+      int port: 8000,
+      String path: '/cityNames'}) async {
+    return await HttpClient()
+        .get(host, port, path)
+        .catchError((error) {})
+        .then((HttpClientRequest req) => req.close())
+        .catchError((error) {})
+        .then((HttpClientResponse resp) {
+      if (resp.statusCode == 200) {
+        resp.transform(utf8.decoder).transform(json.decoder).listen((data) {
+          var tmpList = <Map<String, String>>[];
+          var tmpMap = <String, String>{};
+          for (var i in data) {
+            Map<String, dynamic>.from(i).forEach((key, value) {
+              if (key == 'coord') {
+                tmpMap['lon'] = value['lon']?.toString() ?? "null";
+                tmpMap['lat'] = value['lat']?.toString() ?? "null";
+              } else
+                tmpMap[key] = value.toString();
+            });
+            tmpList.add(tmpMap);
+            tmpMap = {};
+          }
+          setState(() {
+            _statusText = 'Storing City Names ...';
+          });
+          inflateCityNamesDataBase(tmpList).then((int retVal) {
+            setState(() {
+              _statusText = retVal == 1 ? 'Done' : 'Something went wrong :/';
+            });
+            Timer(Duration(seconds: 1), () {
+              Navigator.of(context).pop(retVal == 1 ? true : false);
+            });
+          });
+        });
+      } else
+        Navigator.of(context).pop(false);
+    }).catchError((error) {});
+  }
+
+  Future<int> inflateCityNamesDataBase(List<Map<String, String>> data) async {
+    return await widget.methodChannel.invokeMethod(
+        'inflateCityNamesDataBase', <String, List<Map<String, String>>>{
+      'cityNames': data
+    }).then((val) => val);
+  }
+
   inputValidator() {
     if (_textEditingController.text.isEmpty) {
       FocusScope.of(context).requestFocus(_focusNode);
@@ -58,15 +111,18 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
     } else {
       _focusNode.unfocus();
       setState(() {
+        _isEnabled = false;
         _visibilityUpper = 0.75;
         _visibilityLower = 0.25;
       });
       Timer(Duration(seconds: 1), () {
         storeAPIKey().then((bool val) {
-          if (val)
+          if (val) {
             setState(() {
               _statusText = 'Downloading City Names ...';
             });
+            downloadCityNames();
+          }
         });
       });
     }
@@ -99,6 +155,7 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     TextField(
+                      enabled: _isEnabled,
                       focusNode: _focusNode,
                       onTap: () =>
                           FocusScope.of(context).requestFocus(_focusNode),
@@ -108,7 +165,8 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
                           setState(() {
                             _errorText = 'This can\'t be kept blank';
                           });
-                        }
+                        } else
+                          inputValidator();
                       },
                       onChanged: (String val) {
                         if (_errorText != null && _errorText.isNotEmpty)
@@ -146,14 +204,14 @@ class _InitSetUpPageState extends State<InitSetUpPage> {
                       alignment: MainAxisAlignment.spaceAround,
                       children: <Widget>[
                         RaisedButton(
-                          onPressed: openInTargetApp,
+                          onPressed: _isEnabled ? openInTargetApp : null,
                           child: Text('Get API Key'),
                           elevation: 12,
                           color: Colors.cyanAccent,
                           splashColor: Colors.white,
                         ),
                         RaisedButton(
-                          onPressed: inputValidator,
+                          onPressed: _isEnabled ? inputValidator : null,
                           child: Text('Continue'),
                           elevation: 12,
                           color: Colors.cyanAccent,

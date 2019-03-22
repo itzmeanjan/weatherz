@@ -42,11 +42,36 @@ class _MyHomeState extends State<MyHome> {
             child: Text('Init SetUp Done'),
           );
         });
-      else
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => InitSetUpPage(
-                  methodChannel: _methodChannel,
-                )));
+      else {
+        Navigator.of(context)
+            .push(MaterialPageRoute(
+                builder: (context) => InitSetUpPage(
+                      methodChannel: _methodChannel,
+                    )))
+            .then((retVal) {
+          if (retVal)
+            initSetUpDone().then((val) {
+              setState(() {
+                _myHomeWidget = Center(
+                  child: Text('Everything okay :)'),
+                );
+              });
+            });
+          else
+            setState(() {
+              _myHomeWidget = Center(
+                child: Text('Something went wrong :/'),
+              );
+            });
+        });
+      }
+    });
+  }
+
+  Future<List<Map<String, String>>> getCityNames() async {
+    return await _methodChannel.invokeMethod('getCityNames').then((val) {
+      var tmpList = List<dynamic>.from(val);
+      return tmpList.map((elem) => Map<String, String>.from(elem)).toList();
     });
   }
 
