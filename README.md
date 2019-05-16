@@ -1,3 +1,5 @@
+<p align="center"><img src="/logo/logotype-a.png"></p>
+
 # weatherz
 
 Another Weather App, built with Flutter ;)
